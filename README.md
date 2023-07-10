@@ -5,7 +5,7 @@ This repository contains the code and data associated with the paper "Quantifyin
 - an extension of the Billboard dataset of 200 playability annotated songs tested for reliability;
 - a rule-based baseline for our playability metric.
 
-![Alt Text](image.jpg)
+![A picture describing the division of playability into cognitive and physical facets.](playability.png)
 ## Contents
 1. `data/`: Contains the dataset of 200 songs from the McGill Billboard dataset, along with the playability annotations.
 2. `code/`: Includes the code for the rule-based baseline, LSTM, and GRU models, used to predict the rubric categories automatically.
