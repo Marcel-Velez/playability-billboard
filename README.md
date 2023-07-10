@@ -35,8 +35,8 @@ Citation:
 ```
 @article{velezvasquez2023,
   title   = {Quantifying the Ease of Playing Song Chords on the Guitar},
-  author  = {Vélez Vásquez, M.A., Baelemans, M.C.E., Driedger, J., Zuidema, W., Burgoyne, J.A.},
-  journal = {Proceedings of the 24th International Society for Music Information Retrieval Conference},
+  author  = {Vélez Vásquez, M.A. and Baelemans, M.C.E. and Driedger, J. and Zuidema, W. and Burgoyne, J.A.},
+  booktitle = {Proceedings of the 24th International Society for Music Information Retrieval Conference},
   year    = {2023},
 }
 ```
