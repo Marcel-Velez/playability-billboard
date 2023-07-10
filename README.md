@@ -29,7 +29,7 @@ This repository contains the code and data associated with the paper "Quantifyin
 Table: Proposed rubric for human annotators evaluating the difficulty of playing the chords of a song on the guitar. Although the rubric functions acceptably using the raw scores from the table header, it has even better predictive power when weighting the criteria according to the factor in the weight column. Note that the beat difficulty criterion provides so little extra information that we recommend omitting it (i.e., setting its weight to zero).
 
 
-If you have any questions or would like to collaborate, please feel free to contact us.
+If you have any questions, please feel free to contact us.
 
 Citation:
 ```
