@@ -1,5 +1,5 @@
 # Quantifying the Ease of Playing Song Chords on the Guitar
-
+_Still under construction_
 This repository contains the code and data associated with the paper "Quantifying the Ease of Playing Song Chords on the Guitar" In this paper, we focus on rhythm guitar, a popular instrument among amateur musicians, and propose a rubric-based "playability" metric to formalize the spectrum of difficulty.
 - We propose an interpretable guitar playability metric;
 - an extension of the Billboard dataset of 200 playability annotated songs tested for reliability;
