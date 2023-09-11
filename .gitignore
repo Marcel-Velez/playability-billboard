@@ -1,0 +1,13 @@
+.idea*
+*.iml
+*.xml
+.DS_store
+.ipynb_checkpoints
+__pycache__
+data/chords
+data/lab_files
+wandb
+not needed
+predicted_values
+snellius-models-newlstm
+trained_models

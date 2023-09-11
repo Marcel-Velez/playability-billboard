@@ -5,7 +5,7 @@ This repository contains the code and data associated with the paper "Quantifyin
 - an extension of the Billboard dataset of 200 playability annotated songs tested for reliability;
 - a rule-based baseline for our playability metric.
 
-<img src="playability.png" width="500">
+<img src="media/playability.png" width="500">
 
 ## Contents
 1. `data/`: Contains the dataset of 200 songs from the McGill Billboard dataset, along with the playability annotations.
