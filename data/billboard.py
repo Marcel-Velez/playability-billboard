@@ -153,7 +153,7 @@ class BillBoard(pl.LightningDataModule):
 
         # go over all song chords in training and extract the set of occuring symbols which is needed for the one hot
         # encoding of the input for the LSTM/ DeepGRU
-        possible_symbols = extract_possible_symbols(self.X_train, self.encoding)
+        possible_symbols = extract_possible_symbols(self.X_train, self.chord_encoding)
 
         # +2 because we reserve 0 for padding value and 1 for unknown symbols
         encode_dict = {k: i + 2 for i, k in enumerate(set(possible_symbols))}

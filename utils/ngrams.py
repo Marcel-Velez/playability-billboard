@@ -35,6 +35,8 @@ def extract_n_grams(long_string, n_gram=None):
         quad_gram = ngram_extractor(chopped_up, n=4)
         return uni_gram, bi_gram, tri_gram, quad_gram
 
+
+
 def simplify_grams(n_grams_count):
     # simplify chords in the n-grams in case we did not have the chord finger positions
     clean_count = {}

@@ -1,7 +1,7 @@
 from .song_functions import process_song, get_idf_dict
-from .billboard_utils import get_chords_and_annotations, extract_chord_path_and_annotations
+from .billboard_utils import get_chords_and_annotations, extract_chord_path_and_annotations, extract_indices_subset
 from .chord_encodings import extract_possible_symbols, convert_to_encoding
-# from .ngrams import extract_n_grams, simplify_grams
+from .ngrams import extract_n_grams, simplify_grams
 from .clean_up import update_dict
 from .custom_data_functions import convert_to_seq_lab, get_data, retrieve_model, retrieve_encode_dict
 

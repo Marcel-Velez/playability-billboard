@@ -56,6 +56,8 @@ def extract_possible_symbols(dataset, chord_encoding):
             possible_symbols += encode_character(cleaned_song)
         elif chord_encoding == 'guitardiagram':
             possible_symbols += encode_guitardiagram(cleaned_song, True)
+        else:
+            raise ValueError(f"Unknown chord encoding: {chord_encoding}")
 
     return possible_symbols
 

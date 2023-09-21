@@ -4,7 +4,7 @@ def get_boundaries(cat_dict, method='brute'):
     boundaries = []
 
     if method == 'all':
-        sorted_all = list(sorted(cat_dict[1] + cat_dict[2] + cat_dict[3] + cat_dict[4]))
+        sorted_all = list(sorted(cat_dict[0] + cat_dict[1] + cat_dict[2] + cat_dict[3]))
         best_classified = 0
         best_thresh = []
 
@@ -29,7 +29,7 @@ def get_boundaries(cat_dict, method='brute'):
                         best_thresh = [thresh_1, thresh_2, thresh_3]
         boundaries = best_thresh
 
-    for i in range(1, len(cat_dict.keys())):
+    for i in range(0, len(cat_dict.keys())-1):
         if method == 'brute':
             best_classified = 0
             best_thresh = 0

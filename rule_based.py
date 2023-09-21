@@ -358,7 +358,7 @@ def score_cat_one(cat_num,
                   cat_6_tfidf=False,
                   clean=True,
                   ):
-    first_cat_scores = {1: [], 2: [], 3: [], 4: []}
+    first_cat_scores = {0: [], 1: [], 2: [], 3: []}
 
     for (chords, lab_file, sub_scores, total) in files_to_iterate:
 
@@ -369,9 +369,6 @@ def score_cat_one(cat_num,
 
         if clean:
             new_uni = simplify_grams(new_uni)
-            new_bi = simplify_grams(new_bi)
-            new_tri = simplify_grams(new_tri)
-            new_quad = simplify_grams(new_quad)
 
         if cat_num == 1:
             cat_1_score = score_cat_generic(new_uni, idf_dict, metric=cat_strategy, distance_dict=cat_1_distance)
@@ -637,13 +634,6 @@ def train_all(chords_and_annotations, all_idf_dict, all_gram):
     }
     return cfg
 
-
-def give_subset(indices, chords_and_annotations):
-    subset = []
-    for index, chords_and_stuff in enumerate(chords_and_annotations):
-        if index in indices:
-            subset.append(chords_and_stuff)
-    return subset
 
 class RuleModel:
     def __init__(self, cfg, all_uni_gram, idf_dict):

@@ -11,3 +11,4 @@ not needed
 predicted_values
 snellius-models-newlstm
 trained_models
+*.sh

@@ -42,21 +42,21 @@ num2letter = {
 }
 
 
-def retrieve_model(model_type, input_size, cat, learning_rate, symb_enc, device, fold=-1, train=False):
+def retrieve_model(model_type, input_size, cat, learning_rate=0.002, chord_encoding='char', device=torch.device('cpu'), fold=-1, max_epochs=20, train=False):
     if model_type == "DeepGRU" or model_type == "gru":
         model = DeepGRU(
             input_size=input_size,
             output_size=4 if cat != 7 else 39,
             learning_rate=learning_rate,
         ).to(device)
-        file_name = f"new_gru_target_{cat + 1}_fold_{fold}_-1_{symb_enc}.pth"
+        file_name = f"new_gru_target_{cat + 1}_fold_{fold}_{max_epochs}_{chord_encoding}.pth"
     elif model_type == "lstm":
         model = LSTM(
             input_size=input_size,
             output_size=4 if cat != 7 else 39,
             learning_rate=0.002,
         ).to(device)
-        file_name = f"new_lstm_target_{cat + 1}_fold_{fold}_-1_{symb_enc}.pth"
+        file_name = f"new_lstm_target_{cat + 1}_fold_{fold}_{max_epochs}_{chord_encoding}.pth"
     if train:
         return model
     path = os.path.join('./trained_models/', file_name)

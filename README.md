@@ -8,12 +8,66 @@ This repository contains the code and data associated with the paper "Quantifyin
 <img src="media/playability.png" width="500">
 
 ## Contents
-1. `data/`: Contains the dataset of 200 songs from the McGill Billboard dataset, along with the playability annotations.
-2. `code/`: Includes the code for the rule-based baseline, LSTM, and GRU models, used to predict the rubric categories automatically.
+1. `data/`: Contains the dataset of 200 songs from the McGill Billboard dataset, along with the playability annotations, and the code for the billboard and custom data dataloaders in pytorch.
+2. `models/`: Includes the code for the LSTM, and GRU models, used to predict the rubric categories automatically.
+3. `rule_models`: Contains the fitted rule-based model pickle files.
+4. `trained_models`: Contains the trained model pth files.
+5. `utils/`: Contains the rule-based model functions, helper functions for the ML models, and the evaluation metrics.
+6. `main.py`: Contains the code for training the models on the billboard playability dataset and evaluating them.
+7. `custom_data.py`: Contains the code for predicting playability scores for new data.
+8. `rule`
+## Installation
+```bash
+pip install -r requirements.txt
+```
 
-## Usage
-1. **Data**: The dataset of 200 songs and their corresponding playability annotations can be found in the `data/` directory. Each song is labeled according to the rubric-based metric, capturing various aspects of playability.
-2. **Code**: The `code/` directory contains the implementation of the rule-based baseline, LSTM, and GRU models. These models utilize chord symbols and textual representations of guitar tablature to predict the rubric categories automatically. Instructions for running and evaluating the models can be found in the code documentation.
+## Usage of code
+
+### training on the billboard dataset
+
+Train an lstm on predicting the weighted total playability score for all songs in the dataset
+```bash
+python main.py --chord_encoding char --target weighted_total --model lstm --accelerator cpu 
+```
+Training on a Single Category other than the default values (see configuration for more info on arguments)
+```bash
+python main.py --batch_size 64 --chord_encoding char --target weighted_total --k_fold 0 --learning_rate 0.002 --model lstm --dropout 0.5 --max_epochs 20 --num_workers 0 --accelerator cpu --file_path ./data/Annotations.csv
+```
+Training on All Categories
+```bash
+python main.py --batch_size 64 --chord_encoding char --target all --k_fold 0 --learning_rate 0.002 --model lstm --dropout 0.5 --max_epochs 20 --num_workers 0 --accelerator cpu --file_path ./data/Annotations.csv
+```
+
+### predicting playability scores for new data
+predicting new values for the data in ./data/
+note that the data should be in the same format as the billboard dataset and for the guitardiagram one has to implement a mapping to guitarfingers like A:maj: ['x', 'o', '2:1', '2:2', '2:3', 'o'].
+```bash
+python custom_data.py --chord_encoding char --target weighted_total --model lstm --accelerator cpu --file_path ./data/Annotations.csv --data_path ./data/Annotations.csv
+```
+
+## Configuration
+
+Explain the configuration options available to users. Describe each command-line argument or configuration file option and what it does.
+
+    --batch_size: Specify the batch size for training. 
+        (_default_: 64)
+    --chord_encoding: Choose the chord encoding method.
+        _default_: 'char', 
+        options:['char','dotsplit','guitardiagram']).
+    --target: Specify the target category or 'all' to train on all categories
+        _default_: 'weighted_total'   
+        options: ['CFP', 'CFD', 'UC', 'RHC', 'CPT', 'BD', 'R', 'weighted_total']
+    --k_fold: Specify the k-fold index for cross-validation.
+    --learning_rate: Set the learning rate for training.
+    --model: Choose the model architecture 
+        default: 'lstm'
+        options: ['lstm','gru']
+    --dropout: Set the dropout rate.
+    --max_epochs: Specify the maximum number of training epochs.
+    --num_workers: Set the number of data loading workers.
+    --accelerator: Choose between 'cpu', 'mps, and 'gpu' for hardware acceleration.
+    --file_path: Specify the path to the playability data file.
+        _default_: './data/Annotations.csv'
 
 ## The rubric
 

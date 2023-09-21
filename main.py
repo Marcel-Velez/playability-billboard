@@ -77,7 +77,7 @@ def main(config):
             dm_cat = data(
                 batch_size=config['batch_size'],
                 num_workers=config['num_workers'],
-                encoding=config['chord_encoding'],
+                chord_encoding=config['chord_encoding'],
                 target=f"{p}",
                 target_data_path=config['file_path'],
             )
@@ -87,7 +87,7 @@ def main(config):
         dm_cat = data(
             batch_size=config['batch_size'],
             num_workers=config['num_workers'],
-            encoding=config['chord_encoding'],
+            chord_encoding=config['chord_encoding'],
             target=config['target'],
             target_data_path=config['file_path'],
         )
@@ -102,7 +102,7 @@ def main(config):
                 input_size=dm_cat.encode_dict_size,
                 learning_rate=config['learning_rate'],
                 cat=cat_ind,
-                symb_enc=config['chord_encoding'],
+                chord_encoding=config['chord_encoding'],
                 device='cuda' if config['accelerator'] == 'gpu' else 'cpu',
                 train=True
             )
@@ -113,7 +113,7 @@ def main(config):
             input_size=dm_cat.encode_dict_size,
             learning_rate=config['learning_rate'],
             cat=ALL_TARGETS.index(config['target']),
-            symb_enc=config['chord_encoding'],
+            chord_encoding=config['chord_encoding'],
             device='cuda' if config['accelerator'] == 'gpu' else 'cpu',
             train=True
         )
@@ -166,7 +166,7 @@ if __name__ == '__main__':
     parser.add_argument('--k_fold', type=int, default=0)
     parser.add_argument('--learning_rate', type=float, default=0.002)
     parser.add_argument('--model', type=str, default='lstm')
-    parser.add_argument('--dropout',type=float, default=0.5)
+    parser.add_argument('--dropout', type=float, default=0.5)
     parser.add_argument('--max_epochs', type=int, default=20)
     parser.add_argument('--num_workers', type=int, default=0)
     parser.add_argument('--accelerator', type=str, default='cpu')
