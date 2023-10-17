@@ -1,0 +1,809 @@
+---
+title: Billboard Difficulty Analysis
+author: John Ashley Burgoyne
+execute: 
+  echo: false
+  warning: false
+  message: false
+  results: hide
+  include: false
+mainfont: Fira Sans
+embed-resources: true
+format: 
+  html:
+    header-includes: |
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    df-print: default
+---
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(fs)
+library(cmdstanr)
+pcm_model <- 
+  cmdstan_model(
+    "stan/pcm.stan", 
+    cpp_options = list(stan_threads = TRUE),
+    stanc_options = list("O1")
+  )
+```
+
+```{r}
+#| label: aml-theme
+theme_set(ggthemes::theme_tufte(base_family = "Fira Sans"))
+aml_palette <- c("#D843E2", "#39D7B8", "#FFB14C", 
+                 "#FA5577", "#0CC7F1", "#2B2BEE", 
+                 "#212529", "#BDBEBF", "#F5F5F6")
+options(
+  ggplot2.discrete.colour = aml_palette, 
+  ggplot2.discrete.fill = aml_palette
+)
+```
+
+
+This document presents the raw reliability analysis for Tom's *Billboard* annotations.
+We use three item–response models: partial credit (PCM), generalised partial credit (GPCM), and extended partial credit (EPCM).
+In all cases, β~*n*~ refers to the difficulty of song *n*, δ~*ik*~ refers to the difficulty threshold where the probability of Tom choosing a score of *k* over a score of *k – 1* is exactly 50–50 for criterion *i*.
+We report the results on a stanine scale.
+
+::: {.panel-tabset}
+
+## Raw Data
+
+```{r}
+#| label: load-data
+annotations <- 
+  read_csv2("dat/annotations.csv") |> 
+  separate_wider_regex(
+    song,
+    patterns = 
+      c(
+        "pk: ",
+        pk = "\\d+",
+        ", track: ",
+        title = ".+",
+        " \\(",
+        year = "\\d+",
+        "\\), by: ",
+        artist = ".+",
+        ", audio location: .*"
+      )
+  )
+stan_annotations <-
+  annotations |>  
+  mutate(song = str_c(artist, " - ", title)) |> 
+  select(
+    song,
+    `Chord Finger Positioning` = antwoord1,
+    `Chord Fingering Difficulty` = antwoord2,
+    `Chord Commonness` = antwoord3,
+    `Right-Hand Complexity` = antwoord4,
+    `Chord Progression Speed` = antwoord5,
+    `Beat Difficulty` = antwoord6,
+    `Repetitiveness` = antwoord7
+  ) |> 
+  pivot_longer(
+    -song,
+    names_to = "criterion", 
+    values_to = "score"
+  ) |> 
+  mutate(
+    criterion =
+      fct_relevel(
+        criterion,
+        "Chord Commonness", "Chord Finger Positioning",
+        "Chord Fingering Difficulty", "Repetitiveness", "Right-Hand Complexity",
+        "Chord Progression Speed", "Beat Difficulty"
+      ),
+    score = score - 1,
+    stan_song = dense_rank(song),
+    stan_criterion = dense_rank(criterion)
+  )
+stan_songs <- 
+  stan_annotations |> 
+  distinct(stan_song, song) |> 
+  arrange(stan_song)
+stan_criteria <- 
+  stan_annotations |> 
+  distinct(stan_criterion, criterion) |> 
+  arrange(stan_criterion)
+stan_data <-
+  list(
+    N = max(stan_annotations |> pull(stan_song)),
+    I = max(stan_annotations |> pull(stan_criterion)),
+    K = 3,
+    M = nrow(stan_annotations),
+    nn = stan_annotations |> pull(stan_song),
+    ii = stan_annotations |> pull(stan_criterion),
+    xx = stan_annotations |> pull(score)
+  )
+```
+
+```{r}
+#| label: raw-score-histograms
+#| include: true
+stan_annotations |> 
+  ggplot(aes(score)) +
+  geom_bar() +
+  labs(title = "Histograms of Criterion Scores", x = NULL, y = NULL) +
+  facet_wrap(~ criterion, ncol = 4)
+```
+
+```{r}
+#| include: true
+stan_annotations |> 
+  select(song, criterion, score) |> 
+  DT::datatable(filter = "top")
+```
+
+
+## PCM
+
+```{r}
+#| label: pcm-fit
+if (file_exists("stan/pcm.rds")) {
+  pcm_fit <- readRDS("stan/pcm.rds")
+} else {
+  pcm_fit <- 
+    pcm_model$sample(
+      data = c(stan_data, ndim_alpha = 0),
+      chains = 4,
+      parallel_chains = 4,
+      threads_per_chain = 2,
+      iter_warmup = 1000,
+      iter_sampling = 1000,
+      refresh = 100
+    )
+  pcm_fit$save_object("stan/pcm.rds")
+}
+```
+
+The partial-credit model achieves a reliability of `r pcm_fit$summary("beta") |> summarise(R = var(mean)) |> pull(R) |> round(2)` for estimating song difficulties.
+That means that a difference of `r pcm_fit$summary("beta") |> summarise(R = var(mean)) |> pull(R) |> (\(x) 2 * 3 * sqrt(1 - x))() |> round(1)` stanines can be considered significant.
+
+### Criteria
+
+```{r}
+#| include: true
+pcm_fit$summary("criterion_thresholds") |> 
+  separate_wider_regex(
+    variable, 
+    patterns = 
+      c(
+        "criterion_thresholds\\[", 
+        stan_criterion = "\\d", 
+        ",", 
+        threshold = "\\d", "\\]"
+      )
+  ) |> 
+  mutate(stan_criterion = as.integer(stan_criterion)) |> 
+  inner_join(stan_criteria, by = "stan_criterion") |> 
+  ggplot(
+    aes(
+      x = threshold, 
+      y = median, ymin = q5, ymax = q95, 
+      colour = factor(threshold)
+    )
+  ) + 
+  geom_pointrange() + 
+  scale_x_discrete(labels = c("0|1", "1|2", "2|3")) +
+  labs(
+    title = "Criterion Level Thresholds (in stanines)",
+    subtitle = "Partial-Credit Model",
+    x = NULL, y = NULL
+  ) +
+  scale_colour_discrete(guide = NULL) +
+  facet_wrap(~ criterion, ncol = 4)
+```
+
+```{r}
+#| include: true
+pcm_fit$summary("criterion_outfit") |> 
+  mutate(statistic = "Outfit") |> 
+  bind_rows(
+    pcm_fit$summary("criterion_infit") |> mutate(statistic = "Infit")
+  ) |> 
+  separate_wider_regex(
+    variable, 
+    patterns = c("criterion_(?:out|in)fit\\[", stan_criterion = "\\d", "\\]")
+  ) |> 
+  mutate(stan_criterion = as.integer(stan_criterion)) |> 
+  inner_join(stan_criteria, by = "stan_criterion") |> 
+  mutate(
+    criterion = fct_reorder(criterion, as.numeric(median), .fun = max),
+    statistic = fct_relevel(statistic, "Outfit", "Infit")
+  ) |> 
+  ggplot(aes(x = criterion, y = median, ymin = q5, ymax = q95)) + 
+  geom_hline(yintercept = 1, colour = "#BDBEBF") +
+  geom_pointrange() +
+  coord_flip() +
+  labs(
+    title = "Criterion Score Statistics",
+    subtitle = "Partial-Credit Model",
+    x = NULL, y = NULL
+  ) +
+  facet_wrap(~ statistic)
+```
+
+### Songs
+
+```{r}
+pcm_scores <-
+  stan_annotations |> 
+  group_by(stan_song) |> 
+  summarise(score = sum(score) * 7 / n()) |> 
+  inner_join(
+    pcm_fit$summary("song_difficulties") |> 
+      separate_wider_regex(
+        variable, 
+        patterns = c("song_difficulties\\[", stan_song = "\\d+", "\\]")
+      ) |> 
+      mutate(stan_song = as.integer(stan_song)) |> 
+      select(stan_song, stanine = median)
+  ) |> 
+  inner_join(stan_songs, by = "stan_song") |> 
+  select(stan_song, song, score, stanine)
+```
+
+
+```{r}
+#| include: TRUE
+pcm_scores |> 
+  ggplot(aes(stanine)) +
+  geom_histogram(binwidth = 1) +
+  scale_x_continuous(breaks = c(1, 3, 5, 7, 9)) +
+  labs(
+    title = "Histogram of Stanines",
+    subtitle = "Partial-Credit Model",
+    x = NULL, y = NULL
+  )
+```
+
+```{r}
+#| include: true
+pcm_scores |> 
+  ggplot(aes(score, stanine)) +
+  scale_y_continuous(breaks = c(1, 3, 5, 7, 9)) +
+  geom_smooth() +
+  labs(
+    title = "Raw Score to Stanine Conversion",
+    subtitle = "Partial-Credit Model",
+    x = "Raw Score",
+    y = "Stanine"
+  )
+```
+```{r}
+#| include: true
+#| fig-height: 24
+pcm_fit$summary("song_difficulties") |> 
+  separate_wider_regex(
+    variable, 
+    patterns = c("song_difficulties\\[", stan_song = "\\d+", "\\]")
+  ) |> 
+  mutate(stan_song = as.integer(stan_song)) |> 
+  inner_join(stan_songs, by = "stan_song") |> 
+  mutate(song = fct_reorder(song, as.numeric(median))) |> 
+  ggplot(aes(x = song, y = median, ymin = q5, ymax = q95)) + 
+  geom_pointrange() +
+  coord_flip() +
+  labs(
+    title = "Song Difficulty (in Stanines)",
+    subtitle = "Partial Credit Model",
+    x = NULL, y = NULL
+  )
+```
+
+```{r}
+#| include: true
+#| fig-height: 24
+pcm_fit$summary("song_outfit") |> 
+  mutate(statistic = "Outfit") |> 
+  bind_rows(pcm_fit$summary("song_infit") |> mutate(statistic = "Infit")) |> 
+  separate_wider_regex(
+    variable, 
+    patterns = c("song_(?:in|out)fit\\[", stan_song = "\\d+", "\\]")
+  ) |> 
+  mutate(stan_song = as.integer(stan_song)) |> 
+  inner_join(stan_songs, by = "stan_song") |> 
+  mutate(
+    song = fct_reorder(song, as.numeric(median), .fun = max),
+    statistic = fct_relevel(statistic, "Outfit", "Infit")
+  ) |> 
+  ggplot(aes(x = song, y = median, ymin = q5, ymax = q95)) + 
+  geom_hline(yintercept = 1, colour = "#BDBEBF") +
+  geom_pointrange() +
+  coord_flip() +
+  facet_wrap(~ statistic) +
+  labs(
+    title = "Song Score Statistics",
+    subtitle = "Partial Credit Model",
+    x = NULL, y = NULL
+  )
+```
+
+## GPCM
+
+```{r}
+#| label: gpcm-fit
+if (file_exists("stan/gpcm.rds")) {
+  gpcm_fit <- readRDS("stan/gpcm.rds")
+} else {
+  gpcm_fit <- 
+    pcm_model$sample(
+      data = c(stan_data, ndim_alpha = 1),
+      chains = 4,
+      parallel_chains = 4,
+      threads_per_chain = 2,
+      iter_warmup = 1000,
+      iter_sampling = 1000,
+      refresh = 100
+    )
+  gpcm_fit$save_object("stan/gpcm.rds")
+}
+```
+
+The generalised partial-credit model achieves a reliability of `r gpcm_fit$summary("beta") |> summarise(R = var(mean)) |> pull(R) |> round(2)` for estimating song difficulties.
+That means that a difference of `r gpcm_fit$summary("beta") |> summarise(R = var(mean)) |> pull(R) |> (\(x) 2 * 3 * sqrt(1 - x))() |> round(1)` stanines can be considered significant.
+
+### Criteria
+
+```{r}
+#| include: true
+gpcm_fit$summary("alpha") |> 
+  separate_wider_regex(
+    variable, 
+    patterns = c("alpha\\[", stan_criterion = "\\d", ",1\\]")
+  ) |> 
+  mutate(stan_criterion = as.integer(stan_criterion)) |> 
+  inner_join(stan_criteria, by = "stan_criterion") |> 
+  mutate(criterion = fct_reorder(criterion, as.numeric(median), .fun = max)) |> 
+  ggplot(aes(x = criterion, y = median, ymin = q5, ymax = q95)) + 
+  geom_pointrange() +
+  ylim(0, NA) +
+  coord_flip() +
+  labs(
+    title = "Scoring Weights",
+    subtitle = "Generalised Partial-Credit Model",
+    x = NULL, y = NULL
+  )
+```
+
+
+```{r}
+#| include: true
+gpcm_fit$summary("criterion_thresholds") |> 
+  separate_wider_regex(
+    variable, 
+    patterns = 
+      c(
+        "criterion_thresholds\\[", 
+        stan_criterion = "\\d", 
+        ",", 
+        threshold = "\\d", "\\]"
+      )
+  ) |> 
+  mutate(stan_criterion = as.integer(stan_criterion)) |> 
+  inner_join(stan_criteria, by = "stan_criterion") |> 
+  ggplot(
+    aes(
+      x = threshold, 
+      y = median, ymin = q5, ymax = q95, 
+      colour = factor(threshold)
+    )
+  ) + 
+  geom_pointrange() + 
+  scale_x_discrete(labels = c("0|1", "1|2", "2|3")) +
+  labs(
+    title = "Criterion Level Thresholds (in stanines)",
+    subtitle = "Generalised Partial-Credit Model",
+    x = NULL, y = NULL
+  ) +
+  scale_colour_discrete(guide = NULL) +
+  facet_wrap(~ criterion, ncol = 4)
+```
+
+```{r}
+#| include: true
+gpcm_fit$summary("criterion_outfit") |> 
+  mutate(statistic = "Outfit") |> 
+  bind_rows(
+    gpcm_fit$summary("criterion_infit") |> mutate(statistic = "Infit")
+  ) |> 
+  separate_wider_regex(
+    variable, 
+    patterns = c("criterion_(?:out|in)fit\\[", stan_criterion = "\\d", "\\]")
+  ) |> 
+  mutate(stan_criterion = as.integer(stan_criterion)) |> 
+  inner_join(stan_criteria, by = "stan_criterion") |> 
+  mutate(
+    criterion = fct_reorder(criterion, as.numeric(median), .fun = max),
+    statistic = fct_relevel(statistic, "Outfit", "Infit")
+  ) |> 
+  ggplot(aes(x = criterion, y = median, ymin = q5, ymax = q95)) + 
+  geom_hline(yintercept = 1, colour = "#BDBEBF") +
+  geom_pointrange() +
+  coord_flip() +
+  labs(
+    title = "Criterion Score Statistics",
+    subtitle = "Generalised Partial-Credit Model",
+    x = NULL, y = NULL
+  ) +
+  facet_wrap(~ statistic)
+```
+
+### Songs
+
+```{r}
+gpcm_scores <-
+  gpcm_fit$summary("alpha") |> 
+  separate_wider_regex(
+    variable, 
+    patterns = c("alpha\\[", stan_criterion = "\\d", ",1\\]")) |> 
+  mutate(stan_criterion = as.integer(stan_criterion)) |> 
+  select(stan_criterion, weight = median) |> 
+  inner_join(stan_annotations, by = "stan_criterion", multiple = "all") |> 
+  group_by(stan_song, song) |> 
+  summarise(score = sum(weight * score) * 7 / n(), .groups = "drop") |>
+  inner_join(
+    gpcm_fit$summary("song_difficulties") |> 
+      separate_wider_regex(
+        variable, 
+        patterns = c("song_difficulties\\[", stan_song = "\\d+", "\\]")
+      ) |> mutate(stan_song = as.integer(stan_song)) |> 
+      select(stan_song, stanine = median),
+    by = "stan_song"
+  ) |> 
+  select(stan_song, song, score, stanine)
+```
+
+
+```{r}
+#| include: TRUE
+gpcm_scores |> 
+  ggplot(aes(stanine)) +
+  geom_histogram(binwidth = 1) +
+  scale_x_continuous(breaks = c(1, 3, 5, 7, 9)) +
+  labs(
+    title = "Histogram of Stanines",
+    subtitle = "Generalised Partial-Credit Model",
+    x = NULL, y = NULL
+  )
+```
+
+```{r}
+#| include: true
+gpcm_scores |> 
+  ggplot(aes(score, stanine)) +
+  scale_y_continuous(breaks = c(1, 3, 5, 7, 9)) +
+  geom_smooth() +
+  labs(
+    title = "Raw Score to Stanine Conversion",
+    subtitle = "Generalised Partial-Credit Model",
+    x = "Raw Score",
+    y = "Stanine"
+  )
+```
+```{r}
+#| include: true
+#| fig-height: 24
+gpcm_fit$summary("song_difficulties") |> 
+  separate_wider_regex(
+    variable, 
+    patterns = c("song_difficulties\\[", stan_song = "\\d+", "\\]")
+  ) |> 
+  mutate(stan_song = as.integer(stan_song)) |> 
+  inner_join(stan_songs, by = "stan_song") |> 
+  mutate(song = fct_reorder(song, as.numeric(median))) |> 
+  ggplot(aes(x = song, y = median, ymin = q5, ymax = q95)) + 
+  geom_pointrange() +
+  coord_flip() +
+  labs(
+    title = "Song Difficulty (in Stanines)",
+    subtitle = "Generalised Partial Credit Model",
+    x = NULL, y = NULL
+  )
+```
+
+```{r}
+#| include: true
+#| fig-height: 24
+gpcm_fit$summary("song_outfit") |> 
+  mutate(statistic = "Outfit") |> 
+  bind_rows(gpcm_fit$summary("song_infit") |> mutate(statistic = "Infit")) |> 
+  separate_wider_regex(
+    variable, 
+    patterns = c("song_(?:in|out)fit\\[", stan_song = "\\d+", "\\]")
+  ) |> 
+  mutate(stan_song = as.integer(stan_song)) |> 
+  inner_join(stan_songs, by = "stan_song") |> 
+  mutate(
+    song = fct_reorder(song, as.numeric(median), .fun = max),
+    statistic = fct_relevel(statistic, "Outfit", "Infit")
+  ) |> 
+  ggplot(aes(x = song, y = median, ymin = q5, ymax = q95)) + 
+  geom_hline(yintercept = 1, colour = "#BDBEBF") +
+  geom_pointrange() +
+  coord_flip() +
+  facet_wrap(~ statistic) +
+  labs(
+    title = "Song Score Statistics",
+    subtitle = "Generalised Partial Credit Model",
+    x = NULL, y = NULL
+  )
+```
+
+
+## EPCM
+
+```{r}
+if (file_exists("stan/epcm.rds")) {
+  epcm_fit <- readRDS("stan/epcm.rds")
+} else {
+  epcm_fit <- 
+    pcm_model$sample(
+      data = c(stan_data, ndim_alpha = 2),
+      chains = 4,
+      parallel_chains = 4,
+      threads_per_chain = 2,
+      iter_warmup = 1000,
+      iter_sampling = 1000,
+      refresh = 100
+    )
+  epcm_fit$save_object("stan/epcm.rds")
+}
+```
+
+The extended partial-credit model achieves a reliability of `r epcm_fit$summary("beta") |> summarise(R = var(mean)) |> pull(R) |> round(2)` for estimating song difficulties.
+That means that a difference of `r epcm_fit$summary("beta") |> summarise(R = var(mean)) |> pull(R) |> (\(x) 2 * 3 * sqrt(1 - x))() |> round(1)` stanines can be considered significant.
+
+### Criteria
+
+```{r}
+#| include: true
+epcm_fit$summary("alpha") |> 
+  separate_wider_regex(
+    variable, 
+    patterns = 
+      c(
+        "alpha\\[", 
+        stan_criterion = "\\d", 
+        ",", 
+        threshold = "\\d", "\\]"
+      )
+  ) |> 
+  mutate(stan_criterion = as.integer(stan_criterion)) |> 
+  inner_join(stan_criteria, by = "stan_criterion") |> 
+  mutate(criterion = fct_reorder(criterion, -as.numeric(median))) |> 
+  ggplot(
+    aes(
+      x = threshold, 
+      y = median, ymin = q5, ymax = q95, 
+      colour = factor(threshold)
+    )
+  ) + 
+  geom_pointrange() + 
+  scale_x_discrete(labels = c("0|1", "1|2", "2|3")) +
+  ylim(0, NA) +
+  geom_pointrange() +
+  labs(
+    title = "Scoring Weights",
+    subtitle = "Extended Partial-Credit Model",
+    x = NULL, y = NULL
+  ) +
+  scale_colour_discrete(guide = NULL) +
+  facet_wrap(~ criterion, ncol = 4)
+```
+
+```{r}
+#| include: true
+epcm_fit$summary("criterion_thresholds") |> 
+  separate_wider_regex(
+    variable, 
+    patterns = 
+      c(
+        "criterion_thresholds\\[", 
+        stan_criterion = "\\d", 
+        ",", 
+        threshold = "\\d", "\\]"
+      )
+  ) |> 
+  mutate(stan_criterion = as.integer(stan_criterion)) |> 
+  inner_join(stan_criteria, by = "stan_criterion") |> 
+  ggplot(
+    aes(
+      x = threshold, 
+      y = median, ymin = q5, ymax = q95, 
+      colour = factor(threshold)
+    )
+  ) + 
+  geom_pointrange() + 
+  scale_x_discrete(labels = c("0|1", "1|2", "2|3")) +
+  labs(
+    title = "Criterion Level Thresholds (in stanines)",
+    subtitle = "Extended Partial-Credit Model",
+    x = NULL, y = NULL
+  ) +
+  scale_colour_discrete(guide = NULL) +
+  facet_wrap(~ criterion, ncol = 4)
+```
+
+```{r}
+#| include: true
+epcm_fit$summary("criterion_outfit") |> 
+  mutate(statistic = "Outfit") |> 
+  bind_rows(
+    epcm_fit$summary("criterion_infit") |> mutate(statistic = "Infit")
+  ) |> 
+  separate_wider_regex(
+    variable, 
+    patterns = c("criterion_(?:out|in)fit\\[", stan_criterion = "\\d", "\\]")
+  ) |> 
+  mutate(stan_criterion = as.integer(stan_criterion)) |> 
+  inner_join(stan_criteria, by = "stan_criterion") |> 
+  mutate(
+    criterion = fct_reorder(criterion, as.numeric(median), .fun = max),
+    statistic = fct_relevel(statistic, "Outfit", "Infit")
+  ) |> 
+  ggplot(aes(x = criterion, y = median, ymin = q5, ymax = q95)) + 
+  geom_hline(yintercept = 1, colour = "#BDBEBF") +
+  geom_pointrange() +
+  coord_flip() +
+  labs(
+    title = "Criterion Score Statistics",
+    subtitle = "Extended Partial-Credit Model",
+    x = NULL, y = NULL
+  ) +
+  facet_wrap(~ statistic)
+```
+
+### Songs
+
+```{r}
+epcm_scores <-
+  epcm_fit$summary("alpha") |> 
+  separate_wider_regex(
+    variable, 
+    patterns = 
+      c(
+        "alpha\\[", 
+        stan_criterion = "\\d", 
+        ",", 
+        score = "\\d", "\\]"
+      )
+  ) |> 
+  mutate(
+    stan_criterion = as.integer(stan_criterion), 
+    score = as.integer(score)
+  ) |> 
+  select(stan_criterion, score, weight = median) |> 
+  right_join(
+    stan_annotations, 
+    by = c("stan_criterion", "score"), 
+    multiple = "all"
+  )|>
+  mutate(weight = replace_na(weight, 0)) |> 
+  group_by(stan_song, song) |> 
+  summarise(score = sum(weight * score) * 7 / n(), .groups = "drop") |>
+  inner_join(
+    epcm_fit$summary("song_difficulties") |> 
+      separate_wider_regex(
+        variable, 
+        patterns = c("song_difficulties\\[", stan_song = "\\d+", "\\]")
+      ) |> mutate(stan_song = as.integer(stan_song)) |> 
+      select(stan_song, stanine = median),
+    by = "stan_song"
+  ) |> 
+  select(stan_song, song, score, stanine)
+```
+
+
+```{r}
+#| include: TRUE
+epcm_scores |> 
+  ggplot(aes(stanine)) +
+  geom_histogram(binwidth = 1) +
+  scale_x_continuous(breaks = c(1, 3, 5, 7, 9)) +
+  labs(
+    title = "Histogram of Stanines",
+    subtitle = "Extended Partial-Credit Model",
+    x = NULL, y = NULL
+  )
+```
+
+```{r}
+#| include: true
+epcm_scores |> 
+  ggplot(aes(score, stanine)) +
+  scale_y_continuous(breaks = c(1, 3, 5, 7, 9)) +
+  geom_smooth() +
+  labs(
+    title = "Raw Score to Stanine Conversion",
+    subtitle = "Extended Partial-Credit Model",
+    x = "Raw Score",
+    y = "Stanine"
+  )
+```
+```{r}
+#| include: true
+#| fig-height: 24
+epcm_fit$summary("song_difficulties") |> 
+  separate_wider_regex(
+    variable, 
+    patterns = c("song_difficulties\\[", stan_song = "\\d+", "\\]")
+  ) |> 
+  mutate(stan_song = as.integer(stan_song)) |> 
+  inner_join(stan_songs, by = "stan_song") |> 
+  mutate(song = fct_reorder(song, as.numeric(median))) |> 
+  ggplot(aes(x = song, y = median, ymin = q5, ymax = q95)) + 
+  geom_pointrange() +
+  coord_flip() +
+  labs(
+    title = "Song Difficulty (in Stanines)",
+    subtitle = "Extended Partial Credit Model",
+    x = NULL, y = NULL
+  )
+```
+
+```{r}
+#| include: true
+#| fig-height: 24
+epcm_fit$summary("song_outfit") |> 
+  mutate(statistic = "Outfit") |> 
+  bind_rows(epcm_fit$summary("song_infit") |> mutate(statistic = "Infit")) |> 
+  separate_wider_regex(
+    variable, 
+    patterns = c("song_(?:in|out)fit\\[", stan_song = "\\d+", "\\]")
+  ) |> 
+  mutate(stan_song = as.integer(stan_song)) |> 
+  inner_join(stan_songs, by = "stan_song") |> 
+  mutate(
+    song = fct_reorder(song, as.numeric(median), .fun = max),
+    statistic = fct_relevel(statistic, "Outfit", "Infit")
+  ) |> 
+  ggplot(aes(x = song, y = median, ymin = q5, ymax = q95)) + 
+  geom_hline(yintercept = 1, colour = "#BDBEBF") +
+  geom_pointrange() +
+  coord_flip() +
+  facet_wrap(~ statistic) +
+  labs(
+    title = "Song Score Statistics",
+    subtitle = "Extended Partial Credit Model",
+    x = NULL, y = NULL
+  )
+```
+
+
+## Comparison
+
+The generalised and extended models are statistically indistinguishable, but each of them performs better than the plain partial-credit model.
+
+```{r}
+#| label: loo
+#| include: true
+#| echo: true
+#| results: markup
+loo::loo_compare(
+  list(
+    pcm = pcm_fit$loo(), 
+    gpcm = gpcm_fit$loo(), 
+    epcm = epcm_fit$loo()
+  )
+)
+```
+
+```{r}
+#| label: ggpairs
+#| include: true
+tibble(
+  PCM = pcm_scores |> pull(stanine),
+  GPCM = gpcm_scores |> pull(stanine),
+  EPCM = epcm_scores |> pull(stanine)
+) |> 
+GGally::ggpairs(title = "Stanine Scores across All Models")
+```
+
+
+:::
