@@ -95,3 +95,10 @@ Citation:
   year    = {2023},
 }
 ```
+
+
+## example of song formatting, chords and lab file
+
+```txt
+
+```

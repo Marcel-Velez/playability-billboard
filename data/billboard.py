@@ -64,6 +64,8 @@ class ChordDataset(Dataset):
 
         song = process_song(song, remove_nl=False)
         encoded_song = convert_to_encoding(song, self.chord_encoding, self.encode_dict)
+        if self.chord_encoding == 'guitar_test':
+            return encoded_song, label
         ohe_song = F.one_hot(torch.tensor(encoded_song).to(torch.int64), self.encode_dict_size).float()
         return ohe_song[ :, :], label
 
@@ -92,6 +94,9 @@ def get_train_val_ind(indices):
     train = [split_dict[(i% 10)] for i in indices_list[:-1]]
     validate = [split_dict[(i % 10)] for i in indices_list[-1:]]
 
+    if indices == -1:
+        train = [split_dict[(i% 10)] for i in indices_list]
+        validate = train
     train = [j for i in train for j in i]
     validate = [j for i in validate for j in i]
 

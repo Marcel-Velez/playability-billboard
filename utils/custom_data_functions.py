@@ -49,7 +49,7 @@ def retrieve_model(model_type, input_size, cat, learning_rate=0.002, chord_encod
             output_size=4 if cat != 7 else 39,
             learning_rate=learning_rate,
         ).to(device)
-        file_name = f"new_gru_target_{cat + 1}_fold_{fold}_{max_epochs}_{chord_encoding}.pth"
+        file_name = f"v2_gru_target_{cat + 1}_fold_{fold}_{max_epochs}_{chord_encoding}.pth"
     elif model_type == "lstm":
         model = LSTM(
             input_size=input_size,

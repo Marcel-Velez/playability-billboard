@@ -5,6 +5,8 @@ from .ngrams import extract_n_grams, simplify_grams
 from .clean_up import update_dict
 from .custom_data_functions import convert_to_seq_lab, get_data, retrieve_model, retrieve_encode_dict
 
+from .chord_encodings import encode_guitar_test
+
 split_1_ind = [88, 71, 4, 171, 33, 56, 105, 72, 139, 64, 26, 117, 151, 183, 80, 153, 121, 63, 176, 97]
 split_2_ind = [132, 182, 3, 168, 39, 165, 147, 109, 114, 0, 177, 133, 160, 198, 20, 75, 32, 123, 157, 193]
 split_3_ind = [167, 57, 100, 195, 27, 118, 128, 190, 103, 141, 162, 186, 13, 81, 55, 8, 36, 135, 50, 2]

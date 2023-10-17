@@ -35,6 +35,8 @@ class CustomChordSong(Dataset):
         # read the chord annotations file
         song = process_song(file_content, remove_nl=False)
         encoded_song = convert_to_encoding(song, self.chord_encoding, self.encode_dict)
+        if self.chord_encoding == 'guitar_test':
+            return encoded_song
 
         annotations = F.one_hot(torch.tensor(encoded_song).to(torch.int64), self.encode_dict_size).float()
         return annotations
