@@ -1,0 +1,40 @@
+# title: Rockit
+# artist: Herbie Hancock
+# metre: 4/4
+# tonic: A
+
+0.000000000	silence
+0.185759637	A, intro, | N | N |, (drums
+4.504671201	| A:5 | N | N | N |
+13.150022675	| N | N | N | N |, drums)
+21.750340136	A, interlude, | N | N |, (scratch)
+26.017301587	| A:5 | N | N | A:sus4 |, (drums
+34.622403628	| A:sus4 | N | N | N |
+43.165895691	| N |, drums)
+45.348571428	B, refrain, | A:min | A:min | A:min | A:min |, (synthesizer
+53.915804988	| A:min | A:min | A:min | A:min |, synthesizer)
+62.496938775	A, interlude, | N |, (drums
+64.667573696	| A:5 | N | N | N |
+73.264512471	| N | N | A:sus4 | A:sus4 |, drums)
+81.834671201	B, refrain, | A:min | A:min | A:min | A:min |, (synthesizer
+90.400725623	| A:min | A:min | A:min | A:min |
+98.985238095	| A:min | A:min | E:7(b13)/b6 | E:7(b13)/b6 |, synthesizer)
+107.581904761	A, trans, | N | N | N | N |, (scratch)
+116.165147392	B, refrain, | A:min | A:min | A:min | A:min |, (synthesizer
+124.711587301	| A:min | A:min | A:min | A:min |, synthesizer)
+133.302630385	C, solo, | N | N |, (drums
+135.488435374	| N | N | N | N |, (scratch
+144.075691609	| N | N | N | N |
+152.629977324	| N | N | N | N |
+161.246916099	| N | N | N | N |
+169.823718820	| N | N | N | N |
+178.387369614	| N | N | N | N |
+186.991791383	| N | N |, scratch)
+191.257165532	| N |, (drums)
+193.434603174	B', refrain, | A:min | A:min | A:min | A:min |, (synthesizer)
+202.011972789	A, trans, | N | N | N | N |, (drums)
+210.589002267	B, verse, | A:min | A:min | A:min | A:min |, (synthesizer
+219.274603174	| A:min | A:min | A:min | A:min |, synthesizer)
+227.870566893	A, coda, | N | N | N | N |, (drums)
+233.476643990	silence
+236.826122448	end
