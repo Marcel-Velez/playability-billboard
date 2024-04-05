@@ -1,4 +1,5 @@
 # Quantifying the Ease of Playing Song Chords on the Guitar
+## and the Amsterdam Playability dataset
 _Still under construction_
 This repository contains the code and the Amsterdam Playability dataset associated with the paper "Quantifying the Ease of Playing Song Chords on the Guitar" In this paper, we focus on rhythm guitar, a popular instrument among amateur musicians, and propose a rubric-based "playability" metric to formalize the spectrum of difficulty.
 - We propose an interpretable guitar playability metric;
