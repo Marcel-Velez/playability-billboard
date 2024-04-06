@@ -1,7 +1,7 @@
 # Quantifying the Ease of Playing Song Chords on the Guitar
-## and the Amsterdam Playability dataset
+## and the Billboard Playability dataset
 _Still under construction_
-This repository contains the code and the Amsterdam Playability dataset associated with the paper "Quantifying the Ease of Playing Song Chords on the Guitar" In this paper, we focus on rhythm guitar, a popular instrument among amateur musicians, and propose a rubric-based "playability" metric to formalize the spectrum of difficulty.
+This repository contains the code and the Billboard Playability dataset associated with the paper "Quantifying the Ease of Playing Song Chords on the Guitar" In this paper, we focus on rhythm guitar, a popular instrument among amateur musicians, and propose a rubric-based "playability" metric to formalize the spectrum of difficulty.
 - We propose an interpretable guitar playability metric;
 - the Amsterdam Playability dataset which is an extension of the Billboard dataset of 200 playability annotated songs tested for reliability;
 - a rule-based baseline for our playability metric.
@@ -9,7 +9,7 @@ This repository contains the code and the Amsterdam Playability dataset associat
 <img src="media/playability.png" width="500">
 
 ## Contents
-1. `data/`: Contains the Amsterdam Playability Dataset of 200 songs, along with the playability annotations, and the code for the billboard and custom data dataloaders in pytorch.
+1. `data/`: Contains the Billboard Playability Dataset of 200 songs, along with the playability annotations, and the code for the billboard and custom data dataloaders in pytorch.
 2. `models/`: Includes the code for the LSTM, and GRU models, used to predict the rubric categories automatically.
 3. `rule_models`: Contains the fitted rule-based model pickle files.
 4. `trained_models`: Contains the trained model pth files.
